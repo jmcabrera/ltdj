@@ -1,48 +1,47 @@
-/**
- * 
- */
 package java8.bench;
 
 import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-/**
- * @author a208220 - Juan Manuel CABRERA
- *
- */
 public interface Bencher3 {
 
-	default <D> Stat bench(int nb, Consumer<D> task, Collection<D> data) {
-		System.out.println("Warmup");
-		loop(data, task);
+  default <D> Bench<D> bench(int nb, Consumer<D> task) {
+    return data -> {
+      repeat(nb / 10, i -> {
+        loop(data, task);
+      });
 
-		Stat stat = new Stat();
+      System.gc();
 
-		repeat(nb, i -> {
-			System.out.print(".");
-			loop(data, d -> stat.add(time(() -> task.accept(d))));
-		});
-		System.out.println();
+      Stat stat = new Stat();
 
-		return stat;
-	}
+      long apparent = time(() -> {
+        repeat(nb, i -> {
+          loop(data, d -> stat.add(time(() -> task.accept(d))));
+        });
+      });
 
-	default Long time(Runnable task) {
-		long t = System.nanoTime();
-		task.run();
-		return System.nanoTime() - t;
-	}
+      stat.setApparent(apparent);
+      return stat;
+    };
+  }
 
-	default <D> void loop(Collection<D> data, Consumer<D> f) {
-		for (D d : data) {
-			f.accept(d);
-		}
-	}
+  default long time(Runnable task) {
+    long t = System.nanoTime();
+    task.run();
+    return System.nanoTime() - t;
+  }
 
-	default void repeat(int nb, IntConsumer f) {
-		for (int i = 0; i < nb; i++) {
-			f.accept(i);
-		}
-	}
+  default <D> void loop(Collection<D> data, Consumer<D> f) {
+    for (D d : data) {
+      f.accept(d);
+    }
+  }
+
+  default void repeat(int nb, IntConsumer f) {
+    for (int i = 0; i < nb; i++) {
+      f.accept(i);
+    }
+  }
 }
