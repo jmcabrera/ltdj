@@ -58,25 +58,49 @@ public class Bencher3Test implements Patterns {
 
   @Test
   public void compareNbThreads() {
-    System.out.println("dataset | nb threads | number      | apparent (ms)  | total (ms)      | parallelism | loss");
-    for (Map.Entry<String, Collection<String>> e : dataset.entrySet()) {
-      Stat stats = runInParallel2(e.getValue());
-      System.out.printf("%7s | (unknown)  |  %10d |%#,15.3f | %#,15.3f | %#,11.3f | %#,11.3f\n", e.getKey(), stats.getNumber(), stats.getApparent(), stats.getTotal(),
-          stats.getParallelism(), Double.NaN);
+    System.out
+        .println(" nb_threads number     apparent_(ms)   total_(ms)      parallelism loss        mean_(ms)       stddev_(ms)     min_(ms)        p999_(ms)       p9999_(ms)      p99999_(ms)     max_(ms) ");
+    for (int i = 1; i <= 24; i++) {
+      Stat stats = runInParallel(dataset.get("abc"), i);
+      System.out.printf("%10d %10d %#15.3f %#15.3f %#11.3f %#11.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f\n", //
+          i, //
+          stats.getNumber(), //
+          stats.getApparent(), //
+          stats.getTotal(), //
+          stats.getParallelism(), //
+          i - stats.getParallelism(), //
+          stats.getMean(), //
+          Math.sqrt(stats.getVar()), //
+          stats.getMin(), //
+          stats.getPercentile(99.9), //
+          stats.getPercentile(99.99), //
+          stats.getPercentile(99.999), //
+          stats.getMax() //
+          );
     }
-    for (int i = 1; i <= 32; i++) {
-      for (Map.Entry<String, Collection<String>> e : dataset.entrySet()) {
-        Stat stats = runInParallel(e.getValue(), i);
-        System.out.printf("%7s | %10d |  %10d |%#,15.3f | %#,15.3f | %#,11.3f | %#,11.3f\n", e.getKey(), i, stats.getNumber(), stats.getApparent(), stats.getTotal(),
-            stats.getParallelism(), i - stats.getParallelism());
-      }
+    {
+      Stat stats = runInParallel2(dataset.get("abc"));
+      System.out.printf(" (unknown)  %10d %#15.3f %#15.3f %#11.3f %#11.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f\n", //
+          stats.getNumber(), //
+          stats.getApparent(), //
+          stats.getTotal(), //
+          stats.getParallelism(), //
+          Double.NaN,//
+          stats.getMean(), //
+          Math.sqrt(stats.getVar()), //
+          stats.getMin(), //
+          stats.getPercentile(99), //
+          stats.getPercentile(99.9), //
+          stats.getPercentile(99.99), //
+          stats.getMax() //
+          );
     }
   }
 
   private static Stat run(Collection<String> data, Bencher3 bencher) {
     Function<Collection<String>, Stat> bench = //
     bencher.bench(//
-        100000, //
+        500_000, //
         d -> {
           for (Pattern p : PATTERNS) {
             p.matcher(d).matches();

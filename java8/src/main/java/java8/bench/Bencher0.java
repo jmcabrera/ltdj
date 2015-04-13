@@ -11,7 +11,7 @@ public class Bencher0 {
       task.accept(d);
     }
 
-    Stat stat = new Stat();
+    Stat stat = new Stat(nb * data.size());
 
     for (int i = 0; i < nb; i++) {
       if (i % 100 == 0) System.out.print("#");
@@ -21,8 +21,9 @@ public class Bencher0 {
         stat.add(System.nanoTime() - t);
       }
     }
+
     System.out.println();
 
-    return stat;
+    return stat.consolidate();
   }
 }

@@ -3,42 +3,62 @@
  */
 package java8.bench;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import static java.lang.String.*;
 
-import static java.lang.String.format;
-import static java.lang.String.join;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLongArray;
 
 public final class Stat {
 
   /**
    * 
    */
-  private static final double NANO_TO_MILLIS = 1_000_000.0;
+  private static final double   NANO_TO_MILLIS = 1_000_000.0;
 
-  private long                n;
+  private long                  n;
 
-  private double              mean, var, m2, delta, tot, min = Long.MAX_VALUE, max = Long.MIN_VALUE;
+  private double                mean, var, m2, delta, tot, min = Long.MAX_VALUE, max = Long.MIN_VALUE;
 
-  private final List<Long>    values         = new ArrayList<Long>();
+  private final AtomicLongArray values;
 
-  private double              apparent;
+  private final AtomicInteger   idx            = new AtomicInteger(0);
 
-  public synchronized void add(long value) {
-    values.add(value);
-    double valms = value / NANO_TO_MILLIS;
-    min = Double.min(min, valms);
-    max = Double.max(max, valms);
-    n++;
-    tot += valms;
-    delta = valms - mean;
-    mean = mean + delta / n;
-    m2 = m2 + delta * (valms - mean);
-    var = n < 2 ? 0 : m2 / (n - 1);
+  private double                apparent;
+
+  private long[]                avalues;
+
+  /**
+   * @param i
+   */
+  public Stat(int length) {
+    values = new AtomicLongArray(length);
   }
 
-  public synchronized void setApparent(long apparent) {
+  public void add(long value) {
+    values.lazySet(idx.getAndIncrement(), value);
+  }
+
+  public Stat consolidate() {
+    avalues = new long[values.length()];
+    double valms;
+    for (int i = 0; i < values.length(); i++) {
+      avalues[i] = values.get(i);
+      valms = avalues[i] / NANO_TO_MILLIS;
+      min = Double.min(min, valms);
+      max = Double.max(max, valms);
+      n++;
+      tot += valms;
+      delta = valms - mean;
+      mean = mean + delta / n;
+      m2 = m2 + delta * (valms - mean);
+      var = n < 2 ? 0 : m2 / (n - 1);
+    }
+    Arrays.sort(avalues);
+    return this;
+  }
+
+  public void setApparent(long apparent) {
     this.apparent = apparent / NANO_TO_MILLIS;
   }
 
@@ -77,7 +97,6 @@ public final class Stat {
     double fpos = Math.floor(pos);
     int intPos = (int) fpos;
     double dif = pos - fpos;
-    Collections.sort(values);
     double lower = values.get(intPos - 1);
     double upper = values.get(intPos);
     return (lower + dif * (upper - lower)) / NANO_TO_MILLIS;
@@ -106,6 +125,14 @@ public final class Stat {
         format("apparent   : %#,15.3f ms", apparent), //
         format("parallelism: %#,15.3f", tot / apparent), //
         "");
+  }
+
+  public double getMin() {
+    return min;
+  }
+
+  public double getMax() {
+    return max;
   }
 
 }

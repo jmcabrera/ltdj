@@ -14,7 +14,7 @@ public interface Bencher3 {
 
       System.gc();
 
-      Stat stat = new Stat();
+      Stat stat = new Stat(nb * data.size());
 
       long apparent = time(() -> {
         repeat(nb, i -> {
@@ -23,7 +23,7 @@ public interface Bencher3 {
       });
 
       stat.setApparent(apparent);
-      return stat;
+      return stat.consolidate();
     };
   }
 

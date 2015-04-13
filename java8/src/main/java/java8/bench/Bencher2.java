@@ -17,7 +17,7 @@ public interface Bencher2 {
     System.out.println("Warmup");
     loop(data, task);
 
-    Stat stat = new Stat();
+    Stat stat = new Stat(nb * data.size());
 
     repeat(nb, i -> {
       if (i % 100 == 0) System.out.print("#");
@@ -25,7 +25,7 @@ public interface Bencher2 {
     });
     System.out.println();
 
-    return stat;
+    return stat.consolidate();
   }
 
   default long time(Runnable task) {
