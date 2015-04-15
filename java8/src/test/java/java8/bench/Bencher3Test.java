@@ -6,6 +6,7 @@ package java8.bench;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Before;
@@ -58,42 +60,37 @@ public class Bencher3Test implements Patterns {
 
   @Test
   public void compareNbThreads() {
-    System.out
-        .println(" nb_threads number     apparent_(ms)   total_(ms)      parallelism loss        mean_(ms)       stddev_(ms)     min_(ms)        p999_(ms)       p9999_(ms)      p99999_(ms)     max_(ms) ");
-    for (int i = 1; i <= 24; i++) {
+
+    Map<String, Function<Stat, Number>> format = new LinkedHashMap<>();
+    format.put("nb", s -> s.getNumber());
+    format.put("apparent_ms", s -> s.getApparent());
+    format.put("total_ms", s -> s.getTotal());
+    format.put("mean_ms", s -> s.getMean());
+    format.put("stddev_ms", s -> Math.sqrt(s.getVar()));
+    for (int i = 0; i < 100; i += 10) {
+      final int j = i;
+      format.put("p" + i, s -> s.getPercentile(j));
+    }
+    format.put("p99.9", s -> s.getPercentile(99.9));
+    format.put("p99.99", s -> s.getPercentile(99.99));
+    format.put("p99.999", s -> s.getPercentile(99.999));
+
+    System.out.println("nb_threads " + String.join(" ", format.keySet()));
+    for (int i = 1; i <= 16; i++) {
       Stat stats = runInParallel(dataset.get("abc"), i);
-      System.out.printf("%10d %10d %#15.3f %#15.3f %#11.3f %#11.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f\n", //
-          i, //
-          stats.getNumber(), //
-          stats.getApparent(), //
-          stats.getTotal(), //
-          stats.getParallelism(), //
-          i - stats.getParallelism(), //
-          stats.getMean(), //
-          Math.sqrt(stats.getVar()), //
-          stats.getMin(), //
-          stats.getPercentile(99.9), //
-          stats.getPercentile(99.99), //
-          stats.getPercentile(99.999), //
-          stats.getMax() //
-          );
+      System.out.println(i + " " + String.join( //
+          " ", //
+          format.values().stream() //
+              .map(f -> "" + f.apply(stats)) //
+              .collect(Collectors.toList())));
     }
     {
       Stat stats = runInParallel2(dataset.get("abc"));
-      System.out.printf(" (unknown)  %10d %#15.3f %#15.3f %#11.3f %#11.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f %#15.3f\n", //
-          stats.getNumber(), //
-          stats.getApparent(), //
-          stats.getTotal(), //
-          stats.getParallelism(), //
-          Double.NaN,//
-          stats.getMean(), //
-          Math.sqrt(stats.getVar()), //
-          stats.getMin(), //
-          stats.getPercentile(99), //
-          stats.getPercentile(99.9), //
-          stats.getPercentile(99.99), //
-          stats.getMax() //
-          );
+      System.out.println("FJP " + String.join( //
+          " ", //
+          format.values().stream() //
+              .map(f -> "" + f.apply(stats)) //
+              .collect(Collectors.toList())));
     }
   }
 
