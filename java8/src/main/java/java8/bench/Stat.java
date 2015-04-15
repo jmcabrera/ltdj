@@ -97,8 +97,8 @@ public final class Stat {
     double fpos = Math.floor(pos);
     int intPos = (int) fpos;
     double dif = pos - fpos;
-    double lower = values.get(intPos - 1);
-    double upper = values.get(intPos);
+    double lower = avalues[intPos - 1];
+    double upper = avalues[intPos];
     return (lower + dif * (upper - lower)) / NANO_TO_MILLIS;
   }
 
